@@ -1,0 +1,17 @@
+<html><head><title>ShopEasy</title>
+<script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+<link rel="stylesheet" href="css/style.css"></head>
+<body>
+<div id="login">Name <input id="n"> Pass <input id="p" type="password"> <button onclick="doLogin()">Login</button></div>
+<div id="app" style="display:none">
+ <b id="who"></b> <a href="admin.html">admin</a>
+ <input id="search" onkeyup="loadP()"> 
+ <select id="cat" onchange="loadP()"><option value="">all</option><option>HW</option><option>SW</option></select>
+ <table id="plist" border=1></table>
+ <h3>Cart</h3><table id="cartt" border=1></table>
+ <div id="sum"></div>
+ <textarea id="note"></textarea><button onclick="checkout()">Order</button>
+ <h3>My orders</h3><table id="ol" border=1></table>
+</div>
+<script src="js/app.js"></script>
+</body></html>

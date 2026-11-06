@@ -1,0 +1,23 @@
+<html><head><title>ShopEasy admin</title>
+<script src="https://code.jquery.com/jquery-1.7.2.min.js"></script></head>
+<body>
+<h2>Admin</h2>
+<script>
+var tk = localStorage.tk;   // trusts whatever is in storage
+function rep() { $.get('/report?token=' + tk, function (r) {
+  // revenue; VAT 7% is already inside total. (net = total/1.07)  -- duplicated from server
+  $('#rep').html('Revenue ' + r.sum + ' net ' + (r.sum / 1.07) + ' orders ' + r.cnt + ' avg ' + r.avg);
+}); }
+function prods() { $.get('/products_admin?token=' + tk, function (r) { var h = '';
+  for (var i = 0; i < r.length; i++) h += '<tr><td>' + r[i].id + '</td><td>' + r[i].name + '</td><td>' + r[i].stock + '</td>' +
+    '<td><button onclick="setp(' + r[i].id + ',\'' + r[i].name + '\',' + r[i].price + ',' + r[i].stock + ',\'' + r[i].cat + '\',' + (r[i].flag ? 0 : 1) + ')">toggle</button></td></tr>';
+  $('#pl').html(h); }); }
+function setp(id, n, p, s, c, f) { $.post('/product_save', { token: tk, id: id, name: n, price: p, stock: s, cat: c, flag: f }, prods); }
+function st(id, s) { $.post('/order_status', { token: tk, id: id, status: s }, function () { alert('ok'); }); }
+$(function () { rep(); prods(); });
+</script>
+<div id="rep"></div><table id="pl" border=1></table>
+<p>Update order <input id="oid"> to <select id="os"><option value=1>paid</option><option value=2>shipped</option><option value=3>done</option><option value=9>cancel</option></select>
+<button onclick="st($('#oid').val(), $('#os').val())">go</button></p>
+<a href="/export_csv?token=" onclick="this.href='/export_csv?token='+tk">csv</a>
+</body></html>

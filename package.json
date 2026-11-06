@@ -1,0 +1,16 @@
+{
+  "name": "shopeasy",
+  "version": "1.7.3-final2",
+  "description": "ShopEasy order system",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "init-db": "node db/init.js",
+    "build-web": "cd client && npm install && npm run build"
+  },
+  "dependencies": {
+    "body-parser": "1.4.3",
+    "express": "^4.17.1",
+    "sqlite3": "^5.1.7"
+  }
+}

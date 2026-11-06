@@ -1,0 +1,8 @@
+{
+  "name": "shopeasy-web",
+  "version": "0.1.0-rewrite",
+  "private": true,
+  "scripts": { "dev": "vite", "build": "vite build" },
+  "dependencies": { "jquery": "^3.7.1", "moment": "^2.30.0", "react": "16.14.0", "react-dom": "16.14.0" },
+  "devDependencies": { "@vitejs/plugin-react": "^4.3.4", "vite": "^5.4.11" }
+}
