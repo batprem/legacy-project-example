@@ -18,6 +18,7 @@ Logins: `admin/admin123` (admin), `somchai/pass1234` (Regular, type R), `vipjane
 | `client/src/components/ProductCard.jsx` | Dead code, import commented out |
 | `public/` | **Committed build output** served by Express; `client/` source can drift from it |
 | `db/init.js` | Schema + seed (the only "migration") |
+| `CHANGE_REQUESTS.md` | Backlog of 10 business tickets for participants |
 | `old/` | Stale `server.js` backup (different VIP rate and shipping fee), outdated deploy note, the replaced jQuery UI |
 
 ## Planted problems (the "what makes it hard to maintain" list)
@@ -85,6 +86,29 @@ Logins: `admin/admin123` (admin), `somchai/pass1234` (Regular, type R), `vipjane
 4. **Risk triage:** rank the problems above by likelihood × impact.
 5. **Safe refactor:** extract a pricing module first, then parameterize SQL, then split routes.
 6. **Debrief:** compare findings with this list; what did the AI/participants miss?
+
+## Change request notes (`CHANGE_REQUESTS.md`)
+The tickets are written for participants and don't mention the code. Use this section when playing the stakeholder. Only answer questions participants actually ask: finding the question is part of the exercise.
+
+| CR | Skill it exercises | Traps in the code | Stakeholder answer if asked |
+|---|---|---|---|
+| 001 Apostrophe crash | Incident response, root cause | Order inserts fail, `this.lastID` is undefined, the API still returns `ok:1`, then an item insert with no callback throws and kills the process. Fixing only the note leaves other unparameterized SQL: verified, a product named `Men's Bag` returns `ok:1` but is never saved. A code comment says notes contain `<b>` from support, yet no such feature exists. | Notes are plain text. Nobody relies on HTML in them. |
+| 002 Security audit | Risk, safe migration | MD5 hashes can't be converted offline, so rehash at next login. `admin123` is both the backdoor and the admin's real password. CSV download and every `$.get` put the token in the URL. `/debug` and the quick sign-in chips must go, and `public/` must be rebuilt. | Support uses the backdoor to look at customer problems, so removing it needs a replacement. Agree an audited "view as customer", or accept losing it. |
+| 003 Cart mismatch | Duplicated logic | `helpers.js` charges VAT before discount, uses `>= 10000`, and skips the December promo. Cart lines come from the filtered `prods`. Best fix is one source of pricing, such as a quote endpoint. Patching `helpers.js` leaves the duplication and fails the last criterion. | The server's calculation is the correct one. Don't refund past differences. |
+| 004 Overselling | Concurrency, data integrity | Verified: 3 concurrent orders of 3 from a stock of 3 all succeed, ending at -6. There is no transaction, and the order insert runs after an async check. The `db` handle is shared, so `BEGIN` needs care. Negative quantity and hidden-product orders also work today. | Decide with Warehouse how to handle stock that is already negative. |
+| 005 Year-end sale | Hidden rules, config | The old `getMonth() == 11` promo is in `server.js`, and the banner has its own copy in `App.jsx`. Month checks can't span New Year. The server uses local time, not necessarily Thailand time. The promo is applied before the free delivery check, which is why Antivirus + Mouse pays delivery. Depends on CR-003. | The threshold is on the subtotal, before any discount. The discount stacks with VIP and Regular. Marketing can use a config file for now. |
+| 006 Gold tier | Rule discovery | `type` codes are undocumented. **The ticket doesn't say what happens over 10,000.** The rule `total > 10000 && type != 'V'` overwrites other discounts, so Gold silently gets 8%: 2 Monitors is 11,615.92 if that rule applies and 11,742.18 at 7%. No admin screen or endpoint exists for users, and the `type` is cached in `sessions` and `localStorage.usr`, so a change may not reach a signed-in customer. The VIP badge is hardcoded. | Gold gets 8% over 10,000, the better of the two. Tier changes apply on the customer's next order without signing out. |
+| 007 Self-service orders | Missing APIs, state | `/order_status` is admin-only, so this needs a new ownership-checked path. Verified: cancelling twice restocks twice, 25 → 23 → 25 → 27. Moving Cancelled back to Paid doesn't take stock again, so stock stays too high. Labels differ between customer and admin screens, and status 8 is never set. | Unpaid means status 0. Use the labels New, Paid, Shipped, Done, Refunded, Cancelled. |
+| 008 Finance report | Data archaeology, coupling | Discount, VAT and delivery aren't stored, only the grand total, so **old orders can't be broken down exactly**. Dates are unpadded text and `'2026-10-5' >= '2026-9-30'` is false, so a data migration is needed. `parseCsv` in `helpers.js` reads columns by position, so moving date first breaks the admin orders table. A real orders endpoint removes that coupling. `/report` divides delivery by 1.07. | Store the breakdown from now on. Show older orders as estimates and label them. |
+| 009 VAT 8% | Impact analysis | The rate lives in `server.js`, `helpers.js`, the `1.07` in `Admin.jsx`, and the `VAT 7%` label in `App.jsx`, with another stale copy in `old/`. Old orders don't record their rate, and net revenue must not divide them by 1.08. The date needs Thailand time around midnight. Dates are unpadded text. The ticket's figures assume no promotion, but both dates fall in a promo period: the December promo today, and the CR-005 sale once it ships. Testing them means switching promotions off, which is hard until promotions are configurable. | 1 Jan 2027 00:00 Thailand time, based on when the order is placed. |
+| 010 Product photos | Build and deploy | Art is keyed by database id in `App.jsx`. **`emptyOutDir` deletes everything in `public/` at each build**, so uploads saved there vanish on the next release. No upload library is installed. The `scp` deploy doesn't copy data directories. Backups don't exist. | Store on the server's disk for now, and add a backup. |
+
+**Suggested picks:**
+- **Short session (half a day):** CR-001 and CR-003. Both are small to describe, and both lead into the wider design problems.
+- **Impact analysis focus:** CR-009, then CR-006.
+- **Full day:** CR-001, CR-003, CR-004 and CR-008. Have groups order the whole backlog first and defend their order. CR-003 should come before CR-005, CR-006 and CR-009, because each of them changes pricing.
+
+**Verified vs not:** the double restock, the concurrent oversell, the date comparison, the 10,165.00 total, and the apostrophe product were run against the app. The other acceptance totals are calculated from the rules and need the requested feature to be built before they can be tested.
 
 ## Quick behavior checks (golden values, outside December)
 | Customer | Cart | Cart screen shows | Actually charged |
